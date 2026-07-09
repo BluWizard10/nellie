@@ -1,0 +1,261 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Nellie.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="960" d:DesignHeight="620"
+        x:Class="Nellie.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/avalonia-logo.ico"
+        Width="960" Height="620"
+        MinWidth="640" MinHeight="420"
+        Background="#0F0F17"
+        Title="Nellie">
+
+    <Design.DataContext>
+        <vm:MainWindowViewModel/>
+    </Design.DataContext>
+
+    <Window.Resources>
+        <!-- Palette -->
+        <SolidColorBrush x:Key="Accent" Color="#7C5CFF"/>
+        <SolidColorBrush x:Key="AccentDim" Color="#5E48CC"/>
+        <SolidColorBrush x:Key="Surface" Color="#161623"/>
+        <SolidColorBrush x:Key="SurfaceAlt" Color="#1E1E2E"/>
+        <SolidColorBrush x:Key="TextPrimary" Color="#ECECF4"/>
+        <SolidColorBrush x:Key="TextSecondary" Color="#9A9AB4"/>
+        <SolidColorBrush x:Key="Divider" Color="#26263A"/>
+
+        <!-- Transport / media icons (Material Design geometry, 24x24) -->
+        <StreamGeometry x:Key="PlayIcon">M8,5v14l11,-7z</StreamGeometry>
+        <StreamGeometry x:Key="PauseIcon">M6,19h4V5H6v14z M14,5v14h4V5h-4z</StreamGeometry>
+        <StreamGeometry x:Key="StopIcon">M6,6h12v12H6z</StreamGeometry>
+        <StreamGeometry x:Key="PrevIcon">M6,6h2v12H6z M9.5,12l8.5,6V6z</StreamGeometry>
+        <StreamGeometry x:Key="NextIcon">M6,18l8.5,-6L6,6v12z M16,6v12h2V6h-2z</StreamGeometry>
+        <StreamGeometry x:Key="ShuffleIcon">M10.59,9.17L5.41,4L4,5.41l5.17,5.17L10.59,9.17z M14.5,4l2.04,2.04L4,18.59L5.41,20L17.96,7.46L20,9.5V4H14.5z M14.83,13.41l-1.41,1.41l3.13,3.13L14.5,20H20v-5.5l-2.04,2.04L14.83,13.41z</StreamGeometry>
+        <StreamGeometry x:Key="RepeatIcon">M7,7h10v3l4,-4l-4,-4v3H5v6h2V7z M17,17H7v-3l-4,4l4,4v-3h12v-6h-2V17z</StreamGeometry>
+        <StreamGeometry x:Key="MusicIcon">M12,3v10.55c-0.59,-0.34,-1.27,-0.55,-2,-0.55c-2.21,0,-4,1.79,-4,4s1.79,4,4,4s4,-1.79,4,-4V7h4V3H12z</StreamGeometry>
+        <StreamGeometry x:Key="VolumeIcon">M3,9v6h4l5,5V4L7,9H3z M16.5,12c0,-1.77,-1.02,-3.29,-2.5,-4.03v8.05c1.48,-0.73,2.5,-2.25,2.5,-4.02z</StreamGeometry>
+    </Window.Resources>
+
+    <Window.Styles>
+        <!-- Toolbar text buttons -->
+        <Style Selector="Button.tool">
+            <Setter Property="Background" Value="{StaticResource SurfaceAlt}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+            <Setter Property="Padding" Value="14,8"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="BorderThickness" Value="0"/>
+        </Style>
+        <Style Selector="Button.tool:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#2A2A40"/>
+        </Style>
+
+        <!-- Round transport buttons -->
+        <Style Selector="Button.transport">
+            <Setter Property="Width" Value="42"/>
+            <Setter Property="Height" Value="42"/>
+            <Setter Property="CornerRadius" Value="21"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        <Style Selector="Button.transport:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#242438"/>
+        </Style>
+
+        <!-- Primary play/pause button -->
+        <Style Selector="Button.play">
+            <Setter Property="Width" Value="56"/>
+            <Setter Property="Height" Value="56"/>
+            <Setter Property="CornerRadius" Value="28"/>
+            <Setter Property="Background" Value="{StaticResource Accent}"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        <Style Selector="Button.play:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{StaticResource AccentDim}"/>
+        </Style>
+
+        <!-- Toggle-state buttons (shuffle / repeat) go accent when active -->
+        <Style Selector="Button.toggle.active">
+            <Setter Property="Foreground" Value="{StaticResource Accent}"/>
+        </Style>
+
+        <!-- Playlist rows -->
+        <Style Selector="ListBoxItem">
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Margin" Value="0"/>
+            <Setter Property="MinHeight" Value="0"/>
+        </Style>
+        <Style Selector="TextBlock.title">
+            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+        <Style Selector="TextBlock.sub">
+            <Setter Property="Foreground" Value="{StaticResource TextSecondary}"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+    </Window.Styles>
+
+    <Grid RowDefinitions="Auto,*,Auto">
+
+        <!-- ============ Toolbar ============ -->
+        <Border Grid.Row="0" Background="{StaticResource Surface}" Padding="16,12">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                    <TextBlock Text="Nellie" FontSize="20" FontWeight="Bold"
+                               Foreground="{StaticResource TextPrimary}" VerticalAlignment="Center"/>
+                    <Border Background="{StaticResource Accent}" CornerRadius="4" Padding="6,2" VerticalAlignment="Center">
+                        <TextBlock Text="MUSIC" FontSize="10" FontWeight="Bold" Foreground="White"/>
+                    </Border>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+                    <Button Classes="tool" Command="{Binding AddFilesCommand}" Content="Add Files"/>
+                    <Button Classes="tool" Command="{Binding AddFolderCommand}" Content="Add Folder"/>
+                    <Button Classes="tool" Command="{Binding ClearPlaylistCommand}" Content="Clear"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ============ Playlist ============ -->
+        <Grid Grid.Row="1" RowDefinitions="Auto,*">
+            <!-- Column header -->
+            <Border Grid.Row="0" Padding="16,8" Background="{StaticResource Surface}"
+                    BorderBrush="{StaticResource Divider}" BorderThickness="0,0,0,1">
+                <Grid ColumnDefinitions="40,3*,2*,70">
+                    <TextBlock Grid.Column="0" Classes="sub" Text="#"/>
+                    <TextBlock Grid.Column="1" Classes="sub" Text="TITLE"/>
+                    <TextBlock Grid.Column="2" Classes="sub" Text="ALBUM"/>
+                    <TextBlock Grid.Column="3" Classes="sub" Text="TIME" TextAlignment="Right"/>
+                </Grid>
+            </Border>
+
+            <ListBox Grid.Row="1"
+                     Name="PlaylistBox"
+                     ItemsSource="{Binding Playlist}"
+                     SelectedItem="{Binding SelectedTrack}"
+                     Background="Transparent"
+                     BorderThickness="0"
+                     DoubleTapped="OnPlaylistDoubleTapped">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Grid ColumnDefinitions="40,3*,2*,70" Height="52">
+                            <!-- Now-playing indicator -->
+                            <Panel Grid.Column="0">
+                                <Border Width="3" Height="26" CornerRadius="2"
+                                        HorizontalAlignment="Left"
+                                        Background="{StaticResource Accent}"
+                                        IsVisible="{Binding IsCurrent}"/>
+                                <TextBlock Text="{Binding TrackNumber}" Classes="sub"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           IsVisible="{Binding !IsCurrent}"/>
+                                <PathIcon Data="{StaticResource PlayIcon}" Width="12" Height="12"
+                                          Foreground="{StaticResource Accent}"
+                                          HorizontalAlignment="Center" VerticalAlignment="Center"
+                                          IsVisible="{Binding IsCurrent}"/>
+                            </Panel>
+
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
+                                <TextBlock Classes="title" Text="{Binding Title}" TextTrimming="CharacterEllipsis"/>
+                                <TextBlock Classes="sub" Text="{Binding Artist}" TextTrimming="CharacterEllipsis"/>
+                            </StackPanel>
+
+                            <TextBlock Grid.Column="2" Text="{Binding Album}"
+                                       Foreground="{StaticResource TextSecondary}"
+                                       VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+
+                            <TextBlock Grid.Column="3" Text="{Binding DurationText}"
+                                       Foreground="{StaticResource TextSecondary}"
+                                       VerticalAlignment="Center" TextAlignment="Right"/>
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </Grid>
+
+        <!-- ============ Transport bar ============ -->
+        <Border Grid.Row="2" Background="{StaticResource Surface}"
+                BorderBrush="{StaticResource Divider}" BorderThickness="0,1,0,0"
+                Padding="16,12">
+            <Grid ColumnDefinitions="*,2*,*" VerticalAlignment="Center">
+
+                <!-- Now playing -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                    <Border Width="52" Height="52" CornerRadius="8" ClipToBounds="True"
+                            Background="{StaticResource SurfaceAlt}">
+                        <Panel>
+                            <PathIcon Data="{StaticResource MusicIcon}" Width="22" Height="22"
+                                      Foreground="{StaticResource TextSecondary}"
+                                      IsVisible="{Binding CurrentArtwork, Converter={x:Static ObjectConverters.IsNull}}"/>
+                            <Image Source="{Binding CurrentArtwork}" Stretch="UniformToFill"/>
+                        </Panel>
+                    </Border>
+                    <StackPanel VerticalAlignment="Center" Spacing="2" MaxWidth="180">
+                        <TextBlock Classes="title" Text="{Binding CurrentTrack.Title, FallbackValue='Nothing playing'}"
+                                   TextTrimming="CharacterEllipsis"/>
+                        <TextBlock Classes="sub" Text="{Binding CurrentTrack.Artist}"
+                                   TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Controls + seek -->
+                <StackPanel Grid.Column="1" Spacing="6" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="8">
+                        <Button Classes="transport toggle" Classes.active="{Binding Shuffle}"
+                                Command="{Binding ToggleShuffleCommand}" ToolTip.Tip="Shuffle">
+                            <PathIcon Data="{StaticResource ShuffleIcon}" Width="18" Height="18"/>
+                        </Button>
+                        <Button Classes="transport" Command="{Binding PreviousCommand}" ToolTip.Tip="Previous">
+                            <PathIcon Data="{StaticResource PrevIcon}" Width="22" Height="22"/>
+                        </Button>
+                        <Button Classes="play" Command="{Binding PlayPauseCommand}" ToolTip.Tip="Play / Pause">
+                            <Panel>
+                                <PathIcon Data="{StaticResource PlayIcon}" Width="24" Height="24"
+                                          IsVisible="{Binding !IsPlaying}"/>
+                                <PathIcon Data="{StaticResource PauseIcon}" Width="24" Height="24"
+                                          IsVisible="{Binding IsPlaying}"/>
+                            </Panel>
+                        </Button>
+                        <Button Classes="transport" Command="{Binding NextCommand}" ToolTip.Tip="Next">
+                            <PathIcon Data="{StaticResource NextIcon}" Width="22" Height="22"/>
+                        </Button>
+                        <Button Classes="transport toggle" Classes.active="{Binding IsRepeatActive}"
+                                Command="{Binding CycleRepeatCommand}" ToolTip.Tip="Repeat">
+                            <Panel>
+                                <PathIcon Data="{StaticResource RepeatIcon}" Width="18" Height="18"/>
+                                <Border Background="{StaticResource Accent}" CornerRadius="6"
+                                        Width="12" Height="12" HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                                        IsVisible="{Binding IsRepeatOne}">
+                                    <TextBlock Text="1" FontSize="9" FontWeight="Bold" Foreground="White"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                            </Panel>
+                        </Button>
+                    </StackPanel>
+
+                    <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
+                        <TextBlock Grid.Column="0" Classes="sub" Text="{Binding PositionText}"
+                                   VerticalAlignment="Center" Width="44" TextAlignment="Center"/>
+                        <Slider Grid.Column="1" Minimum="0" Maximum="{Binding DurationSeconds}"
+                                Value="{Binding PositionSeconds}" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="2" Classes="sub" Text="{Binding DurationText}"
+                                   VerticalAlignment="Center" Width="44" TextAlignment="Center"/>
+                    </Grid>
+                </StackPanel>
+
+                <!-- Volume -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8"
+                            HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <PathIcon Data="{StaticResource VolumeIcon}" Width="18" Height="18"
+                              Foreground="{StaticResource TextSecondary}"/>
+                    <Slider Minimum="0" Maximum="1" Value="{Binding Volume}" Width="120" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+
+</Window>
