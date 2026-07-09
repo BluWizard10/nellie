@@ -1,5 +1,4 @@
 using System;
-using System.IO;
 using NAudio.Wave;
 using NAudio.Wave.SampleProviders;
 using Nellie.Models;
@@ -64,7 +63,7 @@ namespace Nellie.Services
         {
             DisposePlayback();
 
-            _reader = CreateReader(filePath);
+            _reader = AudioReaderFactory.Create(filePath);
             _volumeProvider = new VolumeSampleProvider(_reader.ToSampleProvider()) { Volume = _volume };
             _output = new WaveOutEvent();
             _output.PlaybackStopped += OnPlaybackStopped;
@@ -101,21 +100,6 @@ namespace Nellie.Services
             if (_reader is not null)
                 _reader.CurrentTime = TimeSpan.Zero;
             SetState(PlayerState.Stopped);
-        }
-
-        /// <summary>
-        /// Picks a reader by extension. AudioFileReader covers WAV/AIFF/MP3 and
-        /// exposes a sample provider directly; everything else (AAC/M4A/WMA/etc.)
-        /// goes through Windows Media Foundation.
-        /// </summary>
-        private static WaveStream CreateReader(string path)
-        {
-            var ext = Path.GetExtension(path).ToLowerInvariant();
-            return ext switch
-            {
-                ".wav" or ".aif" or ".aiff" or ".mp3" => new AudioFileReader(path),
-                _ => new MediaFoundationReader(path),
-            };
         }
 
         private void OnPlaybackStopped(object? sender, StoppedEventArgs e)

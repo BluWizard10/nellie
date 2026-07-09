@@ -89,3 +89,4 @@ $RECYCLE.BIN/
 BenchmarkDotNet.Artifacts.*
 .tokensave
 /CLAUDE.md
+.claude/

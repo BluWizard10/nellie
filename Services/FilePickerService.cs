@@ -16,7 +16,7 @@ namespace Nellie.Services
     {
         public static readonly string[] SupportedExtensions =
         {
-            ".mp3", ".wav", ".flac", ".m4a", ".aac", ".wma", ".ogg", ".opus", ".aif", ".aiff",
+            ".mp3", ".wav", ".flac", ".m4a", ".aac", ".wma", ".mp4", ".ogg", ".oga", ".opus", ".aif", ".aiff",
         };
 
         private readonly Window _window;
