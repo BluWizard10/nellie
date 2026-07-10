@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Media.Imaging;
@@ -14,10 +15,16 @@ namespace Nellie.ViewModels
 {
     public partial class MainWindowViewModel : ViewModelBase, IDisposable
     {
+        private const string DefaultPattern = "{artist} - {song} [{label}]";
+        private const string FileNameField = "File name";
+        private const string DurationField = "Duration";
+
         private readonly AudioPlayerService _player = new();
         private readonly FilePickerService? _filePicker;
         private readonly DispatcherTimer _timer;
         private readonly Random _random = new();
+
+        private FilenamePattern _pattern = new(DefaultPattern);
 
         // Guards the seek slider: when the timer pushes the current position into
         // PositionSeconds we must not treat it as a user-initiated seek.
@@ -35,9 +42,11 @@ namespace Nellie.ViewModels
             _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
             _timer.Tick += OnTimerTick;
             _timer.Start();
+
+            RebuildPattern();
         }
 
-        public ObservableCollection<Track> Playlist { get; } = new();
+        public SortableObservableCollection<Track> Playlist { get; } = new();
 
         [ObservableProperty] private Track? _currentTrack;
         [ObservableProperty] private Track? _selectedTrack;
@@ -49,11 +58,25 @@ namespace Nellie.ViewModels
         [ObservableProperty] private RepeatMode _repeatMode = RepeatMode.Off;
         [ObservableProperty] private Bitmap? _currentArtwork;
 
+        // --- Filename-pattern sorting ---
+        [ObservableProperty] private string _patternText = DefaultPattern;
+        [ObservableProperty] private string? _selectedSortField;
+        [ObservableProperty] private bool _sortDescending;
+        [ObservableProperty] private bool _isSettingsOpen;
+
+        /// <summary>Playlist column tokens, derived from the current pattern.</summary>
+        public ObservableCollection<string> Columns { get; } = new();
+
+        /// <summary>Raised after <see cref="Columns"/> is rebuilt so the view can regenerate DataGrid columns.</summary>
+        public event Action? ColumnsChanged;
+
         public string PositionText => FormatTime(PositionSeconds);
         public string DurationText => FormatTime(DurationSeconds);
         public bool HasCurrentTrack => CurrentTrack is not null;
         public bool IsRepeatActive => RepeatMode != RepeatMode.Off;
         public bool IsRepeatOne => RepeatMode == RepeatMode.One;
+        public bool IsPatternValid => _pattern.IsValid;
+        public string PatternPreview => BuildPatternPreview();
 
         // --- Property change hooks -------------------------------------------------
 
@@ -82,6 +105,18 @@ namespace Nellie.ViewModels
                 newValue.IsCurrent = true;
             OnPropertyChanged(nameof(HasCurrentTrack));
         }
+
+        partial void OnSelectedTrackChanged(Track? value) => OnPropertyChanged(nameof(PatternPreview));
+
+        partial void OnPatternTextChanged(string value) => RebuildPattern();
+
+        partial void OnSelectedSortFieldChanged(string? value)
+        {
+            if (!string.IsNullOrEmpty(value))
+                ApplySort();
+        }
+
+        partial void OnSortDescendingChanged(bool value) => ApplySort();
 
         // --- Transport commands ----------------------------------------------------
 
@@ -195,6 +230,31 @@ namespace Nellie.ViewModels
             DurationSeconds = 0;
         }
 
+        // --- Settings & sorting commands -------------------------------------------
+
+        [RelayCommand]
+        private void OpenSettings() => IsSettingsOpen = true;
+
+        [RelayCommand]
+        private void CloseSettings() => IsSettingsOpen = false;
+
+        /// <summary>
+        /// Sorts by a column token (clicking a header). Re-clicking the active
+        /// column flips the direction; a different column starts ascending.
+        /// </summary>
+        public void SortByColumn(string token)
+        {
+            if (SelectedSortField == token)
+            {
+                SortDescending = !SortDescending; // hook applies the sort
+            }
+            else
+            {
+                SortDescending = false;
+                SelectedSortField = token;        // hook applies the sort
+            }
+        }
+
         // --- Internals -------------------------------------------------------------
 
         private void LoadAndPlay(Track track)
@@ -266,9 +326,12 @@ namespace Nellie.ViewModels
             foreach (var path in files)
             {
                 var track = new Track(path);
+                ParseInto(track);
                 Playlist.Add(track);
                 added.Add(track);
             }
+
+            OnPropertyChanged(nameof(PatternPreview));
 
             // Read tags off the UI thread; apply each result back on it.
             await Task.Run(() =>
@@ -279,6 +342,124 @@ namespace Nellie.ViewModels
                     Dispatcher.UIThread.Post(() => track.ApplyMetadata(meta));
                 }
             });
+        }
+
+        // --- Filename-pattern parsing & sorting ------------------------------------
+
+        private void RebuildPattern()
+        {
+            _pattern = new FilenamePattern(PatternText ?? string.Empty);
+
+            // Columns mirror the pattern tokens.
+            Columns.Clear();
+            foreach (string token in _pattern.Tokens)
+                Columns.Add(token);
+
+            // Re-parse every existing track under the new pattern.
+            foreach (var track in Playlist)
+                ParseInto(track);
+
+            // Drop the active sort if its token no longer exists.
+            if (SelectedSortField is not null
+                && SelectedSortField != DurationField
+                && !_pattern.Tokens.Contains(SelectedSortField, StringComparer.OrdinalIgnoreCase))
+            {
+                SelectedSortField = null;
+            }
+
+            OnPropertyChanged(nameof(IsPatternValid));
+            OnPropertyChanged(nameof(PatternPreview));
+            ColumnsChanged?.Invoke();
+        }
+
+        /// <summary>
+        /// Parses a track's filename with the active pattern. When it doesn't match,
+        /// the raw filename is placed in the first column and the track is flagged
+        /// unmatched so it sinks to the bottom when sorting.
+        /// </summary>
+        private void ParseInto(Track track)
+        {
+            string name = Path.GetFileNameWithoutExtension(track.FilePath);
+            var fields = _pattern.Parse(name);
+
+            if (fields.Count > 0)
+            {
+                track.IsMatched = true;
+                track.FilenameFields = fields;
+            }
+            else
+            {
+                track.IsMatched = false;
+                track.FilenameFields = _pattern.Tokens.Count > 0
+                    ? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { [_pattern.Tokens[0]] = name }
+                    : new Dictionary<string, string>();
+            }
+        }
+
+        private void ApplySort()
+        {
+            if (string.IsNullOrEmpty(SelectedSortField) || Playlist.Count < 2)
+                return;
+
+            string field = SelectedSortField;
+            bool descending = SortDescending;
+
+            // In-place sort raising a Reset so the DataGrid re-renders the new order.
+            var selected = SelectedTrack;
+            Playlist.Sort((a, b) => CompareTracks(a, b, field, descending));
+            SelectedTrack = selected; // restore the highlighted row after the reset
+        }
+
+        private int CompareTracks(Track a, Track b, string field, bool descending)
+        {
+            if (field == DurationField)
+            {
+                int durationCmp = a.Duration.CompareTo(b.Duration);
+                return descending ? -durationCmp : durationCmp;
+            }
+
+            // Tracks that don't match the pattern always sink to the bottom.
+            if (!a.IsMatched && !b.IsMatched)
+                return NaturalComparer.CompareNatural(FileNameOf(a), FileNameOf(b));
+            if (!a.IsMatched)
+                return 1;
+            if (!b.IsMatched)
+                return -1;
+
+            string keyA = SortKey(a, field);
+            string keyB = SortKey(b, field);
+            int cmp = NaturalComparer.CompareNatural(keyA, keyB);
+            if (cmp == 0)
+                cmp = NaturalComparer.CompareNatural(FileNameOf(a), FileNameOf(b));
+            return descending ? -cmp : cmp;
+        }
+
+        private static string SortKey(Track track, string field)
+        {
+            if (field == FileNameField)
+                return FileNameOf(track);
+            return track.FilenameFields.TryGetValue(field, out var value) ? value : string.Empty;
+        }
+
+        private static string FileNameOf(Track track) =>
+            Path.GetFileNameWithoutExtension(track.FilePath);
+
+        private string BuildPatternPreview()
+        {
+            if (!_pattern.IsValid)
+                return "Invalid pattern";
+
+            var track = SelectedTrack ?? Playlist.FirstOrDefault();
+            if (track is null)
+                return "Add tracks to preview parsing";
+
+            var fields = _pattern.Parse(FileNameOf(track));
+            if (fields.Count == 0)
+                return "This file doesn't match the pattern";
+
+            return string.Join("    ", _pattern.Tokens
+                .Where(fields.ContainsKey)
+                .Select(token => $"{token} = {fields[token]}"));
         }
 
         private void LoadArtworkAsync(Track track)

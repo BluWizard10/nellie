@@ -36,6 +36,8 @@
         <StreamGeometry x:Key="RepeatIcon">M7,7h10v3l4,-4l-4,-4v3H5v6h2V7z M17,17H7v-3l-4,4l4,4v-3h12v-6h-2V17z</StreamGeometry>
         <StreamGeometry x:Key="MusicIcon">M12,3v10.55c-0.59,-0.34,-1.27,-0.55,-2,-0.55c-2.21,0,-4,1.79,-4,4s1.79,4,4,4s4,-1.79,4,-4V7h4V3H12z</StreamGeometry>
         <StreamGeometry x:Key="VolumeIcon">M3,9v6h4l5,5V4L7,9H3z M16.5,12c0,-1.77,-1.02,-3.29,-2.5,-4.03v8.05c1.48,-0.73,2.5,-2.25,2.5,-4.02z</StreamGeometry>
+        <StreamGeometry x:Key="SettingsIcon">M19.14,12.94c0.04,-0.3,0.06,-0.61,0.06,-0.94c0,-0.32,-0.02,-0.64,-0.07,-0.94l2.03,-1.58c0.18,-0.14,0.23,-0.41,0.12,-0.61l-1.92,-3.32c-0.12,-0.22,-0.37,-0.29,-0.59,-0.22l-2.39,0.96c-0.5,-0.38,-1.03,-0.7,-1.62,-0.94L14.4,2.81c-0.04,-0.24,-0.24,-0.41,-0.48,-0.41h-3.84c-0.24,0,-0.43,0.17,-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22,-0.08,-0.47,0,-0.59,0.22L2.74,8.87C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58c-0.18,0.14,-0.23,0.41,-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39,-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54c0.04,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44,-0.17,0.47,-0.41l0.36,-2.54c0.59,-0.24,1.13,-0.56,1.62,-0.94l2.39,0.96c0.22,0.08,0.47,0,0.59,-0.22l1.92,-3.32c0.12,-0.22,0.07,-0.47,-0.12,-0.61L19.14,12.94z M12,15.6c-1.98,0,-3.6,-1.62,-3.6,-3.6s1.62,-3.6,3.6,-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z</StreamGeometry>
+        <StreamGeometry x:Key="CloseIcon">M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12z</StreamGeometry>
     </Window.Resources>
 
     <Window.Styles>
@@ -84,12 +86,33 @@
             <Setter Property="Foreground" Value="{StaticResource Accent}"/>
         </Style>
 
-        <!-- Playlist rows -->
-        <Style Selector="ListBoxItem">
-            <Setter Property="Padding" Value="0"/>
-            <Setter Property="Margin" Value="0"/>
-            <Setter Property="MinHeight" Value="0"/>
+        <!-- Playlist DataGrid -->
+        <Style Selector="DataGrid">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="GridLinesVisibility" Value="None"/>
         </Style>
+        <Style Selector="DataGridColumnHeader">
+            <Setter Property="Background" Value="{StaticResource Surface}"/>
+            <Setter Property="MinHeight" Value="38"/>
+            <Setter Property="Padding" Value="12,0"/>
+            <Setter Property="SeparatorBrush" Value="{StaticResource Divider}"/>
+        </Style>
+        <Style Selector="DataGridRow">
+            <Setter Property="MinHeight" Value="46"/>
+        </Style>
+        <Style Selector="DataGridCell">
+            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Padding" Value="12,0"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+
+        <!-- Settings scrim: stays constant on hover/press -->
+        <Style Selector="Button.scrim /template/ ContentPresenter">
+            <Setter Property="Background" Value="#99000000"/>
+        </Style>
+
         <Style Selector="TextBlock.title">
             <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
@@ -103,7 +126,8 @@
     <Grid RowDefinitions="Auto,*,Auto">
 
         <!-- ============ Toolbar ============ -->
-        <Border Grid.Row="0" Background="{StaticResource Surface}" Padding="16,12">
+        <Border Grid.Row="0" Background="{StaticResource Surface}" Padding="16,12"
+                BorderBrush="{StaticResource Divider}" BorderThickness="0,0,0,1">
             <Grid ColumnDefinitions="Auto,*,Auto">
                 <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
                     <TextBlock Text="Nellie" FontSize="20" FontWeight="Bold"
@@ -117,65 +141,28 @@
                     <Button Classes="tool" Command="{Binding AddFilesCommand}" Content="Add Files"/>
                     <Button Classes="tool" Command="{Binding AddFolderCommand}" Content="Add Folder"/>
                     <Button Classes="tool" Command="{Binding ClearPlaylistCommand}" Content="Clear"/>
+                    <Button Classes="transport" Command="{Binding OpenSettingsCommand}" ToolTip.Tip="Settings">
+                        <PathIcon Data="{StaticResource SettingsIcon}" Width="20" Height="20"/>
+                    </Button>
                 </StackPanel>
             </Grid>
         </Border>
 
-        <!-- ============ Playlist ============ -->
-        <Grid Grid.Row="1" RowDefinitions="Auto,*">
-            <!-- Column header -->
-            <Border Grid.Row="0" Padding="16,8" Background="{StaticResource Surface}"
-                    BorderBrush="{StaticResource Divider}" BorderThickness="0,0,0,1">
-                <Grid ColumnDefinitions="40,3*,2*,70">
-                    <TextBlock Grid.Column="0" Classes="sub" Text="#"/>
-                    <TextBlock Grid.Column="1" Classes="sub" Text="TITLE"/>
-                    <TextBlock Grid.Column="2" Classes="sub" Text="ALBUM"/>
-                    <TextBlock Grid.Column="3" Classes="sub" Text="TIME" TextAlignment="Right"/>
-                </Grid>
-            </Border>
-
-            <ListBox Grid.Row="1"
-                     Name="PlaylistBox"
-                     ItemsSource="{Binding Playlist}"
-                     SelectedItem="{Binding SelectedTrack}"
-                     Background="Transparent"
-                     BorderThickness="0"
-                     DoubleTapped="OnPlaylistDoubleTapped">
-                <ListBox.ItemTemplate>
-                    <DataTemplate>
-                        <Grid ColumnDefinitions="40,3*,2*,70" Height="52">
-                            <!-- Now-playing indicator -->
-                            <Panel Grid.Column="0">
-                                <Border Width="3" Height="26" CornerRadius="2"
-                                        HorizontalAlignment="Left"
-                                        Background="{StaticResource Accent}"
-                                        IsVisible="{Binding IsCurrent}"/>
-                                <TextBlock Text="{Binding TrackNumber}" Classes="sub"
-                                           HorizontalAlignment="Center" VerticalAlignment="Center"
-                                           IsVisible="{Binding !IsCurrent}"/>
-                                <PathIcon Data="{StaticResource PlayIcon}" Width="12" Height="12"
-                                          Foreground="{StaticResource Accent}"
-                                          HorizontalAlignment="Center" VerticalAlignment="Center"
-                                          IsVisible="{Binding IsCurrent}"/>
-                            </Panel>
-
-                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
-                                <TextBlock Classes="title" Text="{Binding Title}" TextTrimming="CharacterEllipsis"/>
-                                <TextBlock Classes="sub" Text="{Binding Artist}" TextTrimming="CharacterEllipsis"/>
-                            </StackPanel>
-
-                            <TextBlock Grid.Column="2" Text="{Binding Album}"
-                                       Foreground="{StaticResource TextSecondary}"
-                                       VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
-
-                            <TextBlock Grid.Column="3" Text="{Binding DurationText}"
-                                       Foreground="{StaticResource TextSecondary}"
-                                       VerticalAlignment="Center" TextAlignment="Right"/>
-                        </Grid>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
-        </Grid>
+        <!-- ============ Playlist (dynamic, pattern-driven columns) ============ -->
+        <DataGrid Grid.Row="1"
+                  Name="PlaylistGrid"
+                  ItemsSource="{Binding Playlist}"
+                  SelectedItem="{Binding SelectedTrack}"
+                  AutoGenerateColumns="False"
+                  CanUserSortColumns="True"
+                  CanUserReorderColumns="False"
+                  CanUserResizeColumns="True"
+                  IsReadOnly="True"
+                  SelectionMode="Single"
+                  HeadersVisibility="Column"
+                  Background="Transparent"
+                  Sorting="OnPlaylistSorting"
+                  DoubleTapped="OnPlaylistDoubleTapped"/>
 
         <!-- ============ Transport bar ============ -->
         <Border Grid.Row="2" Background="{StaticResource Surface}"
@@ -256,6 +243,47 @@
                 </StackPanel>
             </Grid>
         </Border>
+
+        <!-- ============ Settings slide-over ============ -->
+        <Grid Grid.Row="0" Grid.RowSpan="3" IsVisible="{Binding IsSettingsOpen}">
+            <!-- Scrim closes the panel when clicked -->
+            <Button Classes="scrim" Command="{Binding CloseSettingsCommand}"
+                    HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                    BorderThickness="0" CornerRadius="0"/>
+
+            <Border Width="440" HorizontalAlignment="Right" VerticalAlignment="Stretch"
+                    Background="{StaticResource Surface}" Padding="24"
+                    BorderBrush="{StaticResource Divider}" BorderThickness="1,0,0,0">
+                <StackPanel Spacing="18">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Grid.Column="0" Text="Settings" FontSize="20" FontWeight="Bold"
+                                   Foreground="{StaticResource TextPrimary}" VerticalAlignment="Center"/>
+                        <Button Grid.Column="1" Classes="transport"
+                                Command="{Binding CloseSettingsCommand}" ToolTip.Tip="Close">
+                            <PathIcon Data="{StaticResource CloseIcon}" Width="18" Height="18"/>
+                        </Button>
+                    </Grid>
+
+                    <Border Background="{StaticResource SurfaceAlt}" CornerRadius="10" Padding="16">
+                        <StackPanel Spacing="10">
+                            <TextBlock Text="FILE NAMING PATTERN" Classes="sub"/>
+                            <TextBox Text="{Binding PatternText}"
+                                     FontFamily="Cascadia Code,Consolas,monospace"
+                                     PlaceholderText="{}{artist} - {song} [{label}]"/>
+                            <TextBlock Classes="sub" TextWrapping="Wrap"
+                                       Text="Use {token} placeholders separated by the literal text in your filenames (spaces, dashes, brackets). The playlist columns update to match your tokens."/>
+                            <Border Background="{StaticResource Surface}" CornerRadius="6" Padding="10">
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="PREVIEW" Classes="sub" FontSize="10"/>
+                                    <TextBlock Text="{Binding PatternPreview}" TextWrapping="Wrap"
+                                               Foreground="{StaticResource TextPrimary}" FontSize="12"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Border>
+        </Grid>
     </Grid>
 
 </Window>
